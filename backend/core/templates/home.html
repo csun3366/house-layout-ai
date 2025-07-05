@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>格局小幫手 | AI 格局分析</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 720px;
+      margin: auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      color: #00796b;
+      text-align: center;
+      font-size: 2.3rem;
+    }
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .custom-upload {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #00796b;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      margin-top: 10px;
+      transition: background-color 0.3s ease;
+    }
+    .custom-upload:hover {
+      background-color: #004d40;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .file-name {
+      margin-left: 12px;
+      color: #555;
+      font-style: italic;
+    }
+    .hidden {
+      display: none;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+    }
+    fieldset {
+      margin-top: 30px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      margin-top: 30px;
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      background: #00796b;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 30px;
+      background: #f1f1f1;
+      padding: 15px;
+      border-left: 5px solid #00796b;
+      border-radius: 6px;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>格局小幫手 | AI 格局分析</h2>
+
+    <label for="inputMode">選擇輸入方式：</label>
+    <select id="inputMode" onchange="toggleInputMode()">
+      <option value="upload">上傳圖片</option>
+      <option value="url">貼上圖片網址</option>
+    </select>
+
+    <!-- 上傳區 -->
+    <div id="uploadSection">
+      <label for="imageFile" class="custom-upload">選擇圖片檔案</label>
+      <input type="file" id="imageFile" accept="image/*" />
+      <span class="file-name" id="fileName">尚未選擇檔案</span>
+    </div>
+
+    <!-- 網址輸入區 -->
+    <div id="urlSection" class="hidden">
+      <label for="imageURL">輸入圖片網址：</label>
+      <input type="text" id="imageURL" placeholder="https://example.com/floorplan.jpg" />
+    </div>
+
+    <!-- 圖片預覽 -->
+    <img id="previewImage" style="display:none;" alt="圖片預覽" />
+
+    <!-- 勾選項目 -->
+    <fieldset>
+      <legend>請選擇你看房時重視的項目：</legend>
+      <label><input type="checkbox" value="客廳採光" /> 客廳採光</label>
+      <label><input type="checkbox" value="主臥衛浴有對外窗" /> 主臥衛浴有對外窗</label>
+      <label><input type="checkbox" value="動線合理" /> 動線合理</label>
+      <label><input type="checkbox" value="廚房通風" /> 廚房通風</label>
+      <label><input type="checkbox" value="廁所不在餐廳旁" /> 廁所不在餐廳旁</label>
+      <label><input type="checkbox" value="格局方正" /> 格局方正</label>
+    </fieldset>
+
+    <button onclick="analyze()">分析格局圖</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function toggleInputMode() {
+      const mode = document.getElementById("inputMode").value;
+      document.getElementById("uploadSection").classList.toggle("hidden", mode !== "upload");
+      document.getElementById("urlSection").classList.toggle("hidden", mode !== "url");
+      document.getElementById("previewImage").style.display = "none";
+    }
+
+    document.getElementById("imageFile").addEventListener("change", function () {
+      const fileNameSpan = document.getElementById("fileName");
+      const file = this.files[0];
+      fileNameSpan.textContent = file ? file.name : "尚未選擇檔案";
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const preview = document.getElementById("previewImage");
+          preview.src = e.target.result;
+          preview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById("imageURL").addEventListener("input", function () {
+      const url = this.value.trim();
+      const preview = document.getElementById("previewImage");
+      preview.src = url;
+      preview.style.display = url ? "block" : "none";
+    });
+
+    async function analyze() {
+      const mode = document.getElementById("inputMode").value;
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      const selectedItems = Array.from(checkboxes).map(cb => cb.value);
+      const resultDiv = document.getElementById("result");
+
+      if (selectedItems.length === 0) {
+        alert("請選擇至少一個看房重點");
+        return;
+      }
+
+      let base64Image;
+
+      if (mode === "upload") {
+        const file = document.getElementById("imageFile").files[0];
+        if (!file) {
+          alert("請上傳圖片");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = async function (event) {
+          base64Image = event.target.result;
+          await sendToBackend(base64Image, selectedItems);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const url = document.getElementById("imageURL").value.trim();
+        if (!url) {
+          alert("請輸入圖片網址");
+          return;
+        }
+        // 直接傳圖片網址，不轉 base64
+        await sendToBackendUrl(url, selectedItems);
+      }
+    }
+
+    async function sendToBackend(imageData, items) {
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "分析中，請稍候...";
+      try {
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: imageData, items: items })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`伺服器錯誤：${errorText}`);
+        }
+
+        const data = await response.json();
+        resultDiv.textContent = data.result || "未收到結果。";
+      } catch (err) {
+        resultDiv.textContent = "發生錯誤：" + err.message;
+      }
+    }
+
+    async function sendToBackendUrl(imageUrl, items) {
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "分析中，請稍候...";
+      try {
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image_url: imageUrl, items: items })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`伺服器錯誤：${errorText}`);
+        }
+
+        const data = await response.json();
+        resultDiv.textContent = data.result || "未收到結果。";
+      } catch (err) {
+        resultDiv.textContent = "發生錯誤：" + err.message;
+      }
+    }
+  </script>
+  <div style="text-align: center; color: #888; margin-top: 40px; font-size: 0.9rem;">
+    © 2025 house-layout.ai
+  </div>
+</body>
+</html>
