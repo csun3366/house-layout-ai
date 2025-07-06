@@ -1,12 +1,43 @@
 import base64
 import json
+import requests
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from openai import OpenAI
 
+
+# https://api.imgbb.com/
+IMGBB_API_KEYS = [
+    "d714308471b48b4a0668d1245e6fe36c", # llvmphighter
+    "02bd7ddf10b4c5bb30a6c6aafcb1e2ac", # j199180305
+]
+def upload_to_imgbb(image_data):
+    for key in IMGBB_API_KEYS:
+        try:
+            url = "https://api.imgbb.com/1/upload"
+            payload = {
+                "key": key,
+                "image": image_data
+            }
+            response = requests.post(url, data=payload)
+
+            if response.status_code == 200:
+                data = response.json()
+                return data["data"]["url"]  # 取得圖片網址
+            else:
+                print("KEY is not valid: " + key)
+                continue
+        except Exception as e:
+            print("KEY is not valid: " + key)
+            continue
+    print("[ERROR]: 所有key都失敗")
+    return None
+
+
 LAOZHANG_API_KEYS = [
-    "sk-JRtt6ZJ1QFvigS3G56FdB74bEcEc435493Bd32E9C34466De", # hoh873700
+    "sk-hRVe3LunH8uNn1p95f0672FdF6D547Ff8c1556Cf5b622239", # laozhang132
+    "sk-KH2SA3FDkwCl1wC0FaC07aDeC69b4782B5F76b4cE5E3F5F9", # laozhang1322
 ]
 
 layout_prompt = '''請對這張住宅平面圖進行詳細分析，包括但不限於以下幾點：
@@ -20,7 +51,7 @@ layout_prompt = '''請對這張住宅平面圖進行詳細分析，包括但不�
 
 請以清楚的條列式格式回答，並說明你做出判斷的依據以及每個空間的位置。
 '''
-def get_house_layout_from_img_url(layout_prompt, image_url, is_simulate=True):
+def get_house_layout_from_img_url(layout_prompt, image_url, is_simulate=False):
     if is_simulate:
         return '''
           1. 各區域功能與位置：
@@ -57,16 +88,25 @@ def get_house_layout_from_img_url(layout_prompt, image_url, is_simulate=True):
               client = OpenAI(api_key=key, base_url=base_url)
               response = client.responses.create(
                   model="gpt-4.1-mini",
-                  input=[{
-                      "role": "user",
-                      "content": [
-                          {"type": "input_text", "text": layout_prompt},
-                          {
-                              "type": "input_image",
-                              "image_url": image_url,
-                          },
-                      ],
-                  }],
+                  input=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "你是一位專業的房屋格局分析師，請根據圖片內容協助判斷格局用途。"
+                                "特別要注意：請詳細觀察哪些區域的外牆有窗戶，窗戶可能以長條線、白框或平行標記出現，如果外牆是黑心實線則表示沒有窗戶"
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": layout_prompt},
+                                {
+                                    "type": "input_image",
+                                    "image_url": image_url,
+                                },
+                            ],
+                        }
+                  ],
               )
               return response.output_text
 
@@ -90,8 +130,13 @@ def generate_prompt(house_layout: str, items: list[str]) -> str:
 
 請以以下格式回覆：
 
-1. {{項目名稱}}：✅ / ❌  
+整體房屋格局，例如客廳 餐廳 廚房 浴室 房間分別在哪裡
+接著才以使用者關心的項目回覆，顯示時要說: ✏️細項分析
+
+{{項目名稱}}：✅ / ❌  
    說明原因：為什麼符合或不符合
+
+請不要使用 ** 或 Markdown 粗體符號。
 """
     return prompt
 
@@ -137,6 +182,16 @@ def analyze_layout(request):
         if image_data:
             # TODO: 前端傳 base64 圖片（data URL 格式）
             print("[INFO] handling image data")
+            if image_data.startswith("data:image"):
+                image_data = image_data.split(",")[1]
+            url = upload_to_imgbb(image_data)
+            if not url:
+                print("[ERROR]: handling image data fails")
+                return JsonResponse({"error": "分析房屋格局發生錯誤"}, status=400)
+            house_layout = get_house_layout_from_img_url(layout_prompt, url)
+            if not house_layout:
+                return JsonResponse({"error": "分析房屋格局發生錯誤"}, status=400)
+            print(house_layout)
         elif image_url:
             # 從網址抓圖片
             print("[INFO] handling image_url: " + image_url)
