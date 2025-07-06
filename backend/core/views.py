@@ -38,6 +38,7 @@ def upload_to_imgbb(image_data):
 LAOZHANG_API_KEYS = [
     "sk-hRVe3LunH8uNn1p95f0672FdF6D547Ff8c1556Cf5b622239", # laozhang132
     "sk-KH2SA3FDkwCl1wC0FaC07aDeC69b4782B5F76b4cE5E3F5F9", # laozhang1322
+    "sk-mzDhgswG4QXbDtMBE73fBeBb2d974050B7D1Ec4a0fBc795c", # laozhang1323, gmail: laozhanglas
 ]
 
 def generate_layout_prompt(items: list[str]) -> str:
