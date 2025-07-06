@@ -40,18 +40,28 @@ LAOZHANG_API_KEYS = [
     "sk-KH2SA3FDkwCl1wC0FaC07aDeC69b4782B5F76b4cE5E3F5F9", # laozhang1322
 ]
 
-layout_prompt = '''請對這張住宅平面圖進行詳細分析，包括但不限於以下幾點：
+def generate_layout_prompt(items: list[str]) -> str:
+    item_list = "\n".join(f"- {item}" for item in items)
 
-- 各個區域的功能，例如大門、玄關、客廳、餐廳、廚房、主臥室、次臥室、客臥室、浴室、前陽台、後陽台等的位置。
-- 是否有任何結構樑或其他結構上的限制，例如:壓樑。並請標示其位置。
-- 浴室是否有對外窗或通風設施。
-- 客廳、餐廳、廚房、主臥室、次臥室、客臥室是否有對外窗。
-- 房間的配置與動線是否合理，是否有任何不尋常或不適當之處。
-- 根據平面圖，是否還有其他家具配置或使用建議。
+    prompt = f"""請對這張住宅平面圖進行以下詳細分析，判斷是否符合使用者在意的每一個看房項目。
+對於每一個項目，請給出 （是）或（否），並提供簡要的原因說明。
 
-請以清楚的條列式格式回答，並說明你做出判斷的依據以及每個空間的位置。
-'''
-def get_house_layout_from_img_url(layout_prompt, image_url, is_simulate=False):
+使用者在意的項目（items）：
+{item_list}
+
+請以以下格式回覆：
+
+整體房屋格局，例如客廳 餐廳 廚房 浴室 房間分別在哪裡
+接著才以使用者在意的看房項目回覆，顯示時要說: ✏️您所關心的項目
+
+{{項目名稱}}：
+   說明原因：為什麼符合或不符合
+
+請不要使用 ** 或 Markdown 粗體符號。
+"""
+    return prompt
+
+def get_house_layout_from_img_url(items, image_url, is_simulate=False):
     if is_simulate:
         return '''
           1. 各區域功能與位置：
@@ -81,7 +91,7 @@ def get_house_layout_from_img_url(layout_prompt, image_url, is_simulate=False):
 
 總結判斷皆是根據圖中家具擺設、門窗位置、結構牆線條、以及空間動線邏輯綜合分析得出。此平面圖整體設計合理且實用。
 '''
-
+    layout_prompt = generate_layout_prompt(items)
     base_url = "https://api.laozhang.ai/v1"
     for key in LAOZHANG_API_KEYS:
           try:
@@ -116,48 +126,6 @@ def get_house_layout_from_img_url(layout_prompt, image_url, is_simulate=False):
 
     return ""
 
-def generate_prompt(house_layout: str, items: list[str]) -> str:
-    item_list = "\n".join(f"- {item}" for item in items)
-
-    prompt = f"""請根據以下的房屋格局描述，判斷是否符合使用者在意的每一個看房項目。
-對於每一個項目，請給出 ✅（符合）或 ❌（不符合），並提供簡要的原因說明。
-
-房屋格局描述（house_layout）：
-{house_layout}
-
-使用者在意的項目（items）：
-{item_list}
-
-請以以下格式回覆：
-
-整體房屋格局，例如客廳 餐廳 廚房 浴室 房間分別在哪裡
-接著才以使用者關心的項目回覆，顯示時要說: ✏️細項分析
-
-{{項目名稱}}：✅ / ❌  
-   說明原因：為什麼符合或不符合
-
-請不要使用 ** 或 Markdown 粗體符號。
-"""
-    return prompt
-
-def chat_with_laozhang(messages, model="deepseek-v3"):
-    base_url = "https://api.laozhang.ai/v1"
-
-    for key in LAOZHANG_API_KEYS:
-        try:
-            client = OpenAI(api_key=key, base_url=base_url)
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages
-            )
-            return response.choices[0].message.content
-
-        except Exception as e:
-            print(f"[!] API key 失敗：{key[:10]}...，錯誤：{e}")
-            continue
-
-    return "OpenAI 額度用完了 QQ"
-
 def home(request):
     return render(request, 'home.html')
 
@@ -180,40 +148,20 @@ def analyze_layout(request):
 
         house_layout = ""
         if image_data:
-            # TODO: 前端傳 base64 圖片（data URL 格式）
             print("[INFO] handling image data")
             if image_data.startswith("data:image"):
                 image_data = image_data.split(",")[1]
-            url = upload_to_imgbb(image_data)
-            if not url:
-                print("[ERROR]: handling image data fails")
-                return JsonResponse({"error": "分析房屋格局發生錯誤"}, status=400)
-            house_layout = get_house_layout_from_img_url(layout_prompt, url)
-            if not house_layout:
-                return JsonResponse({"error": "分析房屋格局發生錯誤"}, status=400)
-            print(house_layout)
-        elif image_url:
-            # 從網址抓圖片
-            print("[INFO] handling image_url: " + image_url)
-            house_layout = get_house_layout_from_img_url(layout_prompt, image_url)
-            if not house_layout:
-                return JsonResponse({"error": "分析房屋格局發生錯誤"}, status=400)
-            print(house_layout)
-        else:
-            return JsonResponse({"error": "Missing image data or image URL"}, status=400)
+            image_url = upload_to_imgbb(image_data)
 
-        for item in items:
-            print(item)
+        if not image_url:
+            print("[ERROR]: handling image data fails")
+            return JsonResponse({"error": "分析房屋格局發生錯誤"}, status=400)
 
-        prompt = generate_prompt(house_layout, items)
-        print(prompt)
-        messages=[
-            {"role": "system", "content": "你是一個中文房屋格局分析專家"},
-            {"role": "user", "content": prompt}
-        ]
-        result = chat_with_laozhang(messages)
-        print(result)
-        return JsonResponse({"result": result})
+        house_layout = get_house_layout_from_img_url(items, image_url)
+        if not house_layout:
+            return JsonResponse({"error": "分析房屋格局發生錯誤"}, status=400)
+        print(house_layout)
+        return JsonResponse({"result": house_layout})
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
