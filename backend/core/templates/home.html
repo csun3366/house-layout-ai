@@ -4,48 +4,61 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>格局小幫手 | AI 格局分析</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: "Noto Sans TC", sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
+      font-family: 'Noto Sans TC', sans-serif;
+      background: linear-gradient(120deg, #e0f7fa, #ffffff);
+      padding: 30px 16px;
+      color: #333;
     }
     .container {
-      max-width: 720px;
+      max-width: 840px;
       margin: auto;
-      background: #fff;
-      border-radius: 12px;
-      padding: 30px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      background: white;
+      border-radius: 16px;
+      padding: 40px 30px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
     }
     h2 {
-      color: #00796b;
+      color: #00695c;
       text-align: center;
-      font-size: 2.3rem;
+      font-size: 2.4rem;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #666;
+      margin-bottom: 28px;
     }
     label {
-      display: block;
-      margin-top: 20px;
       font-weight: bold;
+      display: block;
+      margin-top: 18px;
+      margin-bottom: 6px;
     }
     select, input[type="text"] {
       width: 100%;
-      padding: 10px;
-      margin-top: 6px;
+      padding: 12px;
+      border-radius: 8px;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      font-size: 1rem;
     }
     .custom-upload {
       display: inline-block;
-      padding: 12px 24px;
-      background-color: #00796b;
-      color: #fff;
+      background-color: #00695c;
+      color: white;
+      padding: 12px 20px;
       border-radius: 8px;
-      cursor: pointer;
       font-weight: bold;
       font-size: 1rem;
+      cursor: pointer;
       margin-top: 10px;
-      transition: background-color 0.3s ease;
+      transition: 0.3s;
     }
     .custom-upload:hover {
       background-color: #004d40;
@@ -63,41 +76,65 @@
     }
     img {
       max-width: 100%;
-      margin-top: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      margin-top: 18px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
     }
     fieldset {
       margin-top: 30px;
-      padding: 15px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    legend {
+      padding: 0 10px;
+      font-weight: bold;
+      color: #00695c;
+    }
+    .category h4 {
+      margin-top: 18px;
+      color: #00796b;
+    }
+    .category label {
+      font-weight: normal;
+      display: block;
+      margin: 6px 0;
+    }
+    .select-all {
+      margin: 10px 0;
+      display: inline-block;
+      color: #00796b;
+      font-weight: bold;
+      cursor: pointer;
     }
     button {
       margin-top: 30px;
       width: 100%;
-      padding: 14px;
-      font-size: 1.1rem;
       background: #00796b;
       color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .subtitle {
-      text-align: center;
       font-size: 1.2rem;
-      color: #555;
-      margin-top: -10px;
-      margin-bottom: 20px;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #004d40;
     }
     #result {
       margin-top: 30px;
       background: #f1f1f1;
-      padding: 15px;
+      padding: 18px;
       border-left: 5px solid #00796b;
-      border-radius: 6px;
+      border-radius: 8px;
       white-space: pre-line;
+    }
+    footer {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-top: 50px;
     }
   </style>
 </head>
@@ -131,7 +168,7 @@
     <!-- 勾選項目 -->
     <fieldset>
       <legend>請選擇你重視的項目：</legend>
-      
+
       <div class="category">
         <h4>座向與格局</h4>
         <label><input type="checkbox" value="是否為坐北朝南" /> 是否為坐北朝南</label>
