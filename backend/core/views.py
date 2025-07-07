@@ -36,11 +36,23 @@ def upload_to_imgbb(image_data):
 
 
 LAOZHANG_API_KEYS = [
-    "sk-hRVe3LunH8uNn1p95f0672FdF6D547Ff8c1556Cf5b622239", # laozhang132
-    "sk-KH2SA3FDkwCl1wC0FaC07aDeC69b4782B5F76b4cE5E3F5F9", # laozhang1322
+    "sk-adwTZ7MUxpICWiaT717d71E086E54161904a1eAb82682dCf", # hoh873700
+    "sk-JRtt6ZJ1QFvigS3G56FdB74bEcEc435493Bd32E9C34466De", # woyang84
     "sk-mzDhgswG4QXbDtMBE73fBeBb2d974050B7D1Ec4a0fBc795c", # laozhang1323, gmail: laozhanglas
+    "sk-ZBH1AXcWEWEOhMCiA4813d3818Cc433e9c140618A5Ed5dD1", # qq132132
+    "sk-9ku03D7e746VE0JTDcCfCe53C90842D98b197288835aD135", # jason456456
 ]
 
+system_prompt = '''
+你是一位專業的房屋格局分析師，請根據圖片內容協助判斷格局用途。
+你的背景知識:
+1. 窗戶可能 #白框# 或 #白框內有平行細黑線# 的形式出現，如果外牆是黑心實線則表示沒有窗戶。
+2. 樑通常是 #兩根黑柱連結包含的區域#。如果此區域與床頭重疊的話，則代表床頭壓樑。
+3. 如果有指北針或指南針，則可以判斷方位。若沒有，則回覆無法判斷方位。
+4. 判斷房屋座向，可以站在房屋內部面向大門或主要採光面（如陽台或落地窗），背對的方向即為「坐向」，而面向的方向則為「朝向」。 
+例如，背對南方，面向北方，則為坐南朝北。
+5. 廚房和浴室如果在房屋的正中間，不良的氣味容易沿著管線散佈到周圍其他房間
+'''
 def generate_layout_prompt(items: list[str]) -> str:
     item_list = "\n".join(f"- {item}" for item in items)
 
@@ -92,19 +104,20 @@ def get_house_layout_from_img_url(items, image_url, is_simulate=False):
 
 總結判斷皆是根據圖中家具擺設、門窗位置、結構牆線條、以及空間動線邏輯綜合分析得出。此平面圖整體設計合理且實用。
 '''
+    print("[INFO] Analyzing " + image_url)
     layout_prompt = generate_layout_prompt(items)
     base_url = "https://api.laozhang.ai/v1"
     for key in LAOZHANG_API_KEYS:
           try:
               client = OpenAI(api_key=key, base_url=base_url)
               response = client.responses.create(
-                  model="gpt-4.1-mini",
+                  model="gpt-4o",
                   input=[
                         {
                             "role": "system",
                             "content": (
                                 "你是一位專業的房屋格局分析師，請根據圖片內容協助判斷格局用途。"
-                                "特別要注意：請詳細觀察哪些區域的外牆有窗戶，窗戶可能以長條線、白框或平行標記出現，如果外牆是黑心實線則表示沒有窗戶"
+                                "特別要注意：請詳細觀察哪些區域的外牆有窗戶，窗戶可能以長條線、白框或平行標記出現，如果外牆是黑心實線則表示沒有窗戶。樑通常是兩根黑柱連結包含的區域。"
                             ),
                         },
                         {
